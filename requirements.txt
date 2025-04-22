@@ -1,8 +1,2 @@
-openai==0.28
 flask
-pyttsx3
-pydub
-SpeechRecognition
-requests
 python-dotenv
-PyYAML
