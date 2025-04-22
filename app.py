@@ -18,6 +18,7 @@ def conversar():
     
     return jsonify({"resposta": f"Você perguntou: {pergunta}"})
 
+
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))  # ESSENCIAL para Render
+    port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
