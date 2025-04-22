@@ -2,17 +2,24 @@ from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 import requests
 import openai
+import firebase_admin
+from firebase_admin import credentials, firestore
 import os
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
 
-# Configuração da API do GPT-4.1
+# Configuração GPT-4.1
 openai.api_key = os.getenv("OPENAI_API_KEY")
+
+# Configuração Firebase
+cred = credentials.Certificate("firebase_config.json")
+firebase_admin.initialize_app(cred)
+db = firestore.client()
 
 @app.route("/", methods=["GET"])
 def index():
-    return "JARVIS está online com GPT-4.1 e ElevenLabs!"
+    return "JARVIS SUPREME ONLINE — GPT + Firebase + ElevenLabs + Make"
 
 @app.route("/conversar", methods=["POST"])
 def conversar():
@@ -22,16 +29,29 @@ def conversar():
     if not pergunta:
         return jsonify({"erro": "Mensagem não encontrada"}), 400
 
-    # Chamada ao GPT-4.1
+    # Consultar memória (exemplo básico)
+    memoria_ref = db.collection('memoria').document('contexto')
+    memoria_doc = memoria_ref.get()
+    contexto = memoria_doc.to_dict() if memoria_doc.exists else {}
+
+    # Chamar GPT-4.1 com contexto
     resposta_gpt = openai.ChatCompletion.create(
         model="gpt-4o",
         messages=[
-            {"role": "system", "content": "Você é a Jarvis, uma assistente inteligente e eficiente."},
-            {"role": "user", "content": pergunta}
+            {"role": "system", "content": "Você é a Jarvis, assistente inteligente do comandante."},
+            {"role": "user", "content": f"Contexto: {contexto}\nPergunta: {pergunta}"}
         ]
     )
 
     resposta_texto = resposta_gpt.choices[0].message.content.strip()
+
+    # Salvar interação na memória
+    db.collection('memoria').document('contexto').set({"ultima_interacao": pergunta})
+
+    # Disparar Make se detectar ação (exemplo simples)
+    if "executar" in resposta_texto.lower():
+        requests.post(os.getenv("MAKE_WEBHOOK_URL"), json={"acao": resposta_texto})
+
     return jsonify({"resposta": resposta_texto})
 
 @app.route('/speak', methods=['POST'])
