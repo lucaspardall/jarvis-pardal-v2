@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_file
+from flask import Flask, request, jsonify, send_file, send_from_directory
 from flask_cors import CORS
 import requests
 import openai
@@ -22,7 +22,7 @@ db = firestore.client()
 # Serve o Painel
 @app.route("/", methods=["GET"])
 def painel():
-    return app.send_static_file('index.html')
+    return send_from_directory('static', 'index.html')
 
 @app.route("/conversar", methods=["POST"])
 def conversar():
