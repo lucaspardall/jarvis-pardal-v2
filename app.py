@@ -1,14 +1,18 @@
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 import requests
+import openai
 import os
 
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": "*"}})  # Liberação total de CORS
+CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
+
+# Configuração da API do GPT-4.1
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
 @app.route("/", methods=["GET"])
 def index():
-    return "JARVIS está online!"
+    return "JARVIS está online com GPT-4.1 e ElevenLabs!"
 
 @app.route("/conversar", methods=["POST"])
 def conversar():
@@ -18,7 +22,17 @@ def conversar():
     if not pergunta:
         return jsonify({"erro": "Mensagem não encontrada"}), 400
 
-    return jsonify({"resposta": f"Você perguntou: {pergunta}"})
+    # Chamada ao GPT-4.1
+    resposta_gpt = openai.ChatCompletion.create(
+        model="gpt-4o",
+        messages=[
+            {"role": "system", "content": "Você é a Jarvis, uma assistente inteligente e eficiente."},
+            {"role": "user", "content": pergunta}
+        ]
+    )
+
+    resposta_texto = resposta_gpt.choices[0].message.content.strip()
+    return jsonify({"resposta": resposta_texto})
 
 @app.route('/speak', methods=['POST'])
 def speak():
