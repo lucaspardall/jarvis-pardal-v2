@@ -1,2 +1,7 @@
-openai_api_key: "sua-chave-aqui"
-webhook_make: ""
+import yaml
+
+with open("config/config.yaml", "r") as f:
+    secrets = yaml.safe_load(f)
+
+openai_api_key = secrets.get("openai_api_key")
+webhook_make = secrets.get("webhook_make")
