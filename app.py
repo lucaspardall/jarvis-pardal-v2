@@ -7,7 +7,7 @@ from firebase_admin import credentials, firestore
 import os
 import json
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='static')
 CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
 
 # Configuração GPT-4.1
@@ -19,9 +19,10 @@ cred = credentials.Certificate(json.loads(firebase_json))
 firebase_admin.initialize_app(cred)
 db = firestore.client()
 
+# Serve o Painel
 @app.route("/", methods=["GET"])
-def index():
-    return "JARVIS SUPREME ONLINE — Integrações ativas!"
+def painel():
+    return app.send_static_file('index.html')
 
 @app.route("/conversar", methods=["POST"])
 def conversar():
@@ -31,12 +32,10 @@ def conversar():
     if not pergunta:
         return jsonify({"erro": "Mensagem não encontrada"}), 400
 
-    # Consultar memória (Firestore)
     memoria_ref = db.collection('memoria').document('contexto')
     memoria_doc = memoria_ref.get()
     contexto = memoria_doc.to_dict() if memoria_doc.exists else {}
 
-    # Chamar GPT-4.1 com contexto
     resposta_gpt = openai.ChatCompletion.create(
         model="gpt-4o",
         messages=[
@@ -47,10 +46,8 @@ def conversar():
 
     resposta_texto = resposta_gpt.choices[0].message.content.strip()
 
-    # Salvar interação
     db.collection('memoria').document('contexto').set({"ultima_interacao": pergunta})
 
-    # Disparar Make se necessário
     if "executar" in resposta_texto.lower():
         requests.post(os.getenv("MAKE_WEBHOOK_URL"), json={"acao": resposta_texto})
 
@@ -60,9 +57,6 @@ def conversar():
 def speak():
     data = request.get_json()
     texto = data.get('mensagem')
-
-    if not texto:
-        return jsonify({"erro": "Texto não encontrado"}), 400
 
     headers = {
         "xi-api-key": os.getenv("ELEVENLABS_API_KEY"),
