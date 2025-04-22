@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify
-from config import openai_api_key, webhook_make
+from config import openai_api_key, webhook_make  # Se você usar variáveis, mantém
 
 app = Flask(__name__)
 
@@ -15,8 +15,11 @@ def conversar():
     if not pergunta:
         return jsonify({"erro": "Mensagem não encontrada"}), 400
 
-    # Resposta simples (depois você pode usar OpenAI aqui)
+    # Resposta simples por enquanto
     return jsonify({"resposta": f"Você perguntou: {pergunta}"})
 
+
 if __name__ == "__main__":
-    app.run()
+    import os
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
