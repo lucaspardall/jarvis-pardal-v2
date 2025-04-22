@@ -5,6 +5,7 @@ import openai
 import firebase_admin
 from firebase_admin import credentials, firestore
 import os
+import json
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
@@ -12,14 +13,15 @@ CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
 # Configuração GPT-4.1
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
-# Configuração Firebase
-cred = credentials.Certificate("firebase_config.json")
+# Configuração Firebase via variável de ambiente
+firebase_json = os.getenv("FIREBASE_CONFIG")
+cred = credentials.Certificate(json.loads(firebase_json))
 firebase_admin.initialize_app(cred)
 db = firestore.client()
 
 @app.route("/", methods=["GET"])
 def index():
-    return "JARVIS SUPREME ONLINE — GPT + Firebase + ElevenLabs + Make"
+    return "JARVIS SUPREME ONLINE — Integrações ativas!"
 
 @app.route("/conversar", methods=["POST"])
 def conversar():
@@ -29,7 +31,7 @@ def conversar():
     if not pergunta:
         return jsonify({"erro": "Mensagem não encontrada"}), 400
 
-    # Consultar memória (exemplo básico)
+    # Consultar memória (Firestore)
     memoria_ref = db.collection('memoria').document('contexto')
     memoria_doc = memoria_ref.get()
     contexto = memoria_doc.to_dict() if memoria_doc.exists else {}
@@ -38,17 +40,17 @@ def conversar():
     resposta_gpt = openai.ChatCompletion.create(
         model="gpt-4o",
         messages=[
-            {"role": "system", "content": "Você é a Jarvis, assistente inteligente do comandante."},
-            {"role": "user", "content": f"Contexto: {contexto}\nPergunta: {pergunta}"}
+            {"role": "system", "content": "Você é a Jarvis, assistente inteligente e proativa do comandante."},
+            {"role": "user", "content": f"Contexto atual: {contexto}\nPergunta: {pergunta}"}
         ]
     )
 
     resposta_texto = resposta_gpt.choices[0].message.content.strip()
 
-    # Salvar interação na memória
+    # Salvar interação
     db.collection('memoria').document('contexto').set({"ultima_interacao": pergunta})
 
-    # Disparar Make se detectar ação (exemplo simples)
+    # Disparar Make se necessário
     if "executar" in resposta_texto.lower():
         requests.post(os.getenv("MAKE_WEBHOOK_URL"), json={"acao": resposta_texto})
 
