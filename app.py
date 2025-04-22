@@ -1,28 +1,30 @@
-from flask import Flask, send_from_directory, request, jsonify, send_file
+from flask import Flask, request, jsonify, send_file, send_from_directory
 from flask_cors import CORS
-import requests
 import openai
 import firebase_admin
 from firebase_admin import credentials, firestore
+import requests
 import os
 import json
 
-app = Flask(__name__, static_folder='static', static_url_path='')
+app = Flask(__name__, static_folder='static')
 CORS(app)
 
-# Configuração das APIs
+# Chave GPT
 openai.api_key = os.getenv("OPENAI_API_KEY")
+
+# Firebase
 firebase_json = os.getenv("FIREBASE_CONFIG")
 cred = credentials.Certificate(json.loads(firebase_json))
 firebase_admin.initialize_app(cred)
 db = firestore.client()
 
-# Serve o index.html corretamente
-@app.route('/')
+# Serve o painel HTML
+@app.route("/", methods=["GET"])
 def index():
-    return send_from_directory(app.static_folder, 'index.html')
+    return send_from_directory(app.static_folder, "index.html")
 
-# Restante das rotas (conversar e speak)
+# Endpoint de conversação
 @app.route("/conversar", methods=["POST"])
 def conversar():
     data = request.get_json()
@@ -38,21 +40,25 @@ def conversar():
     resposta_gpt = openai.ChatCompletion.create(
         model="gpt-4o",
         messages=[
-            {"role": "system", "content": "Você é a Jarvis, assistente do comandante."},
+            {"role": "system", "content": "Você é a JARVIS.PARDAL, braço direito do Imperador Lucas."},
             {"role": "user", "content": f"Contexto: {contexto}\nPergunta: {pergunta}"}
         ]
     )
 
     resposta_texto = resposta_gpt.choices[0].message.content.strip()
+
     db.collection('memoria').document('contexto').set({"ultima_interacao": pergunta})
+
+    if "executar" in resposta_texto.lower():
+        requests.post(os.getenv("MAKE_WEBHOOK_URL"), json={"acao": resposta_texto})
 
     return jsonify({"resposta": resposta_texto})
 
-
-@app.route('/speak', methods=['POST'])
+# Endpoint para síntese de voz
+@app.route("/speak", methods=["POST"])
 def speak():
     data = request.get_json()
-    texto = data.get('mensagem')
+    texto = data.get("mensagem")
 
     headers = {
         "xi-api-key": os.getenv("ELEVENLABS_API_KEY"),
@@ -65,6 +71,7 @@ def speak():
     }
 
     VOICE_ID = "EXAVITQu4vr4xnSDxMaL"
+
     response = requests.post(
         f"https://api.elevenlabs.io/v1/text-to-speech/{VOICE_ID}",
         json=body,
@@ -78,5 +85,11 @@ def speak():
     else:
         return jsonify({"erro": "Erro ao gerar áudio"}), 500
 
+# Teste rápido de conexão
+@app.route("/status")
+def status():
+    return "✅ Backend JARVIS ONLINE"
+
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
