@@ -1,8 +1,10 @@
 from flask import Flask, request, jsonify, send_file
+from flask_cors import CORS
 import requests
 import os
 
 app = Flask(__name__)
+CORS(app)  # Libera CORS para todas as rotas
 
 @app.route("/", methods=["GET"])
 def index():
@@ -36,7 +38,7 @@ def speak():
         "voice_settings": { "stability": 0.5, "similarity_boost": 0.75 }
     }
 
-    VOICE_ID = "EXAVITQu4vr4xnSDxMaL"  # ID padrão, depois você pode customizar no ElevenLabs
+    VOICE_ID = "EXAVITQu4vr4xnSDxMaL"
 
     response = requests.post(
         f"https://api.elevenlabs.io/v1/text-to-speech/{VOICE_ID}",
