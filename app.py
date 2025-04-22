@@ -4,7 +4,7 @@ import requests
 import os
 
 app = Flask(__name__)
-CORS(app)  # Libera CORS para todas as rotas
+CORS(app, resources={r"/*": {"origins": "*"}})  # Liberação total de CORS
 
 @app.route("/", methods=["GET"])
 def index():
