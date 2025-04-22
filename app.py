@@ -11,6 +11,12 @@ def index():
 def conversar():
     data = request.get_json()
     pergunta = data.get("mensagem")
+
     if not pergunta:
         return jsonify({"erro": "Mensagem não encontrada"}), 400
+
+    # Resposta simples (depois você pode usar OpenAI aqui)
     return jsonify({"resposta": f"Você perguntou: {pergunta}"})
+
+if __name__ == "__main__":
+    app.run()
